@@ -1,0 +1,6 @@
+*~
+*#
+*.nextflow*
+results
+work
+reads
