@@ -17,7 +17,9 @@ def helpMessage() {
 
     Mandatory arguments:
       --reads [file]                Path to input data (must be surrounded with quotes)
-      --ega_cryptor [file]          Path to EGA Cryptor JAR file (included in bin/ega-cryptor-2.0.0.jar)
+      --ega_cryptor [file]          Absolute path to EGA Cryptor JAR file (included in bin/ega-cryptor-2.0.0.jar)
+      --ega_user [str]              EGA upload box account (e.g. ega-box-1234)
+      --ega_pass [str]              Password for EGA upload box account (TODO: securely pass this through to the upload process)
       -profile [str]                Configuration profile to use. Can use multiple (comma separated)
                                     Available: conda
 
@@ -126,6 +128,7 @@ process upload {
 
     script:
     """
-    echo $sample
+    export ASPERA_SCP_PASS=${params.ega_pass}
+    ascp -T -P 33001 -O 33001 -l 300M -QT -L- -k 1 ${sample}* ${params.ega_user}@fasp.ega.ebi.ac.uk:/.
     """
 }

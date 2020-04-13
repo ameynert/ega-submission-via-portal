@@ -11,3 +11,5 @@ dependencies:
   - conda-forge::pymdown-extensions=6.0
   - conda-forge::pygments=2.5.2
   - conda-forge::openjdk
+  - hcc::aspera-cli
+
