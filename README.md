@@ -1,6 +1,6 @@
 # EGA Submission via Portal
 
-**Supports encryption and upload of paired-end sequencing data to the European Genome/Phenome Archive (EGA) using the Submitter Portal CSV format for Run objects.**.
+**Supports encryption and upload of paired-end sequencing data to the European Genome/Phenome Archive (EGA) using the Submitter Portal CSV format for Run objects.**
 
 ## Introduction
 

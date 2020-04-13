@@ -17,6 +17,7 @@ def helpMessage() {
 
     Mandatory arguments:
       --reads [file]                Path to input data (must be surrounded with quotes)
+      --ega_cryptor [file]          Path to EGA Cryptor JAR file (included in bin/ega-cryptor-2.0.0.jar)
       -profile [str]                Configuration profile to use. Can use multiple (comma separated)
                                     Available: conda
 
@@ -47,74 +48,84 @@ if (!(workflow.runName ==~ /[a-z]+_[a-z]+/)) {
 /*
  * Create a channel for input read files
  */
-if (params.readPaths) {
-    Channel
-        .from(params.readPaths)
-        .map { row -> [ row[0], [ file(row[1][0], checkIfExists: true), file(row[1][1], checkIfExists: true) ] ] }
-        .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
-        .into { ch_read_files_encrypt }
-} else {
-    Channel
-        .fromFilePairs(params.reads, 2)
-        .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!" }
-        .into { ch_read_files_encrypt }
-}
+ch_read_files = Channel
+    .fromFilePairs(params.reads, size : 2)
+    .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!" }
 
 /*
  * STEP 1 - Encrypt
  */
 process encrypt {
     tag "$name"
-    label 'process_medium'
 
     input:
-    set val(name), file(reads) from ch_read_files_encrypt
+    set val(name), file(reads) from ch_read_files
 
     output:
-    file into ch_encrypt_results
+    set val(name), file('*') into ch_encrypt_results
 
     script:
     """
-
+    java -Xmx8g -jar ${params.ega_cryptor} -i ${reads[0]} -t 8 -o .
+    java -Xmx8g -jar ${params.ega_cryptor} -i ${reads[1]} -t 8 -o .
     """
 }
 
-/*Channel
-  .from ch_encrypt_results
-  .into { ch_runs_csv_input, ch_upload_input }*/
+/*
+ * Duplicate the encrypted reads channel
+ */
+ch_encrypt_results.into { ch_runs_csv_input; ch_upload_input }
 
 /*
- * STEP 2 - Collect output and generate CSV file for Runs
+ * STEP 2 - Generate a line of CSV output for runs
  */
-/*process runscsv {
+process runs_csv {
+
+    input:
+    set sample, file(files) from ch_runs_csv_input
+
+    output:
+    file "*.csv" into ch_runs_csv_output
+
+    script:
+    """
+    echo "${sample},${sample}_R1.fastq.gz,`cat ${files[1]}`,`cat ${files[2]}`,${sample}_R2.fastq.gz,`cat ${files[4]}`,`cat ${files[5]}`" > ${sample}.csv
+    """
+}
+
+/*
+ * STEP 3 - Collect the CSV output for runs
+ */
+process collect_runs_csv {
+
     publishDir "${params.outdir}", mode: 'copy'
 
     input:
-    file from ch_runs_csv_input.collect().ifEmpty([])
+    file(files) from ch_runs_csv_output.collect()
 
     output:
-    file "*.csv"
+    file(runs)
 
     script:
+    runs = "runs.csv"
     """
-
-    """
-}*/
-
-/*
- * STEP 3 - Upload output via Aspera to EGA box
- */
-/*process upload {
-    publishDir "${params.outdir}/pipeline_info", mode: 'copy'
-
-    input:
-    file from ch_upload_input
-
-    output:
-
-    script:
-    """
-
+    echo \"Sample alias\",\"First Fastq File\",\"First Checksum\",\"First Unencrypted checksum\",\"Second Fastq File\",\"Second Checksum\",\"Second Unencrypted checksum\" > ${runs}
+    cat ${files} >> ${runs}
     """
 }
-*/
+
+/*
+ * STEP 4 - Upload output via Aspera to EGA box
+ */
+process upload {
+
+    input:
+    set sample, file(files) from ch_upload_input
+
+    output:
+
+    script:
+    """
+    echo $sample
+    """
+}
