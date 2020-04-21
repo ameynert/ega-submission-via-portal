@@ -20,7 +20,7 @@ def helpMessage() {
       --samples [file]              Path to EGA sample.csv file
       --ega_cryptor [file]          Absolute path to EGA Cryptor JAR file (included in bin/ega-cryptor-2.0.0.jar)
       --ega_user [str]              EGA upload box account (e.g. ega-box-1234)
-      --ega_pass [str]              Password for EGA upload box account (TODO: securely pass this through to the upload process)
+      --ega_password [str]          Password for EGA upload box account (TODO: securely pass this through to the upload process)
       -profile [str]                Configuration profile to use. Can use multiple (comma separated)
                                     Available: conda
 
@@ -121,7 +121,7 @@ process collect_runs_csv {
 /*
  * STEP 4 - Upload output via Aspera to EGA box
  */
-/*process upload {
+process upload {
 
     input:
     set sample, file(files) from ch_upload_input
@@ -130,7 +130,7 @@ process collect_runs_csv {
 
     script:
     """
-    export ASPERA_SCP_PASS=${params.ega_pass}
+    export ASPERA_SCP_PASS=${params.ega_password}
     ascp -T -P 33001 -O 33001 -l 300M -QT -L- -k 1 ${sample}* ${params.ega_user}@fasp.ega.ebi.ac.uk:/.
     """
-}*/
+}
