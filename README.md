@@ -21,7 +21,7 @@ rm EgaCryptor.zip
 The CSV file used to upload sample metadata to EGA must be provided. It links the internal EGA sample alias to its name. This pipeline assumes that the FASTQ files for upload are named in the format sample_R1.fastq.gz, sample_R2.fastq.gz.
 
 ```
-nextflow run ameynert/ega-submission-via-portal \
+nextflow run https://git.ecdf.ed.ac.uk/igmmbioinformatics/ega-submission-via-portal \
   -profile conda \
   --reads '*_R{1,2}.fastq.gz' \
   --samples /absolute/path/to/samples.csv \
