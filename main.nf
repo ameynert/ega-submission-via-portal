@@ -17,7 +17,7 @@ def helpMessage() {
 
     Mandatory arguments:
       --reads [file]                Path to input data (must be surrounded with quotes)
-      --samples [file]              Path to EGA sample.csv file
+      --sample_prefix [str]         Sample prefix, samples are of form sample_prefixXXX where XXX is numeric
       --ega_cryptor [file]          Absolute path to EGA Cryptor JAR file (included in bin/ega-cryptor-2.0.0.jar)
       --ega_user [str]              EGA upload box account (e.g. ega-box-1234)
       --ega_password [str]          Password for EGA upload box account (TODO: securely pass this through to the upload process)
@@ -92,7 +92,7 @@ process runs_csv {
 
     script:
     """
-    echo "${sample},${sample}_R1.fastq.gz,`cat ${files[1]}`,`cat ${files[2]}`,${sample}_R2.fastq.gz,`cat ${files[4]}`,`cat ${files[5]}`" > ${sample}.csv
+    echo "sample${sample - ~/${params.sample_prefix}/},${sample}_R1.fastq.gz,`cat ${files[1]}`,`cat ${files[2]}`,${sample}_R2.fastq.gz,`cat ${files[4]}`,`cat ${files[5]}`" > ${sample}.csv
     """
 }
 
@@ -114,7 +114,6 @@ process collect_runs_csv {
     """
     echo \"Sample alias\",\"First Fastq File\",\"First Checksum\",\"First Unencrypted checksum\",\"Second Fastq File\",\"Second Checksum\",\"Second Unencrypted checksum\" > runs_pre.csv
     cat ${files} >> runs_pre.csv
-    map_sample_alias.pl -i runs_pre.csv -s ${params.samples} -o ${runs}
     """
 }
 
