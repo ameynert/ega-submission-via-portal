@@ -112,8 +112,8 @@ process collect_runs_csv {
     script:
     runs = "runs.csv"
     """
-    echo \"Sample alias\",\"First Fastq File\",\"First Checksum\",\"First Unencrypted checksum\",\"Second Fastq File\",\"Second Checksum\",\"Second Unencrypted checksum\" > runs_pre.csv
-    cat ${files} >> runs_pre.csv
+    echo \"Sample alias\",\"First Fastq File\",\"First Checksum\",\"First Unencrypted checksum\",\"Second Fastq File\",\"Second Checksum\",\"Second Unencrypted checksum\" > runs.csv
+    cat ${files} >> runs.csv
     """
 }
 
