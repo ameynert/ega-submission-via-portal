@@ -13,19 +13,20 @@ def helpMessage() {
 
     The typical command for running the pipeline is as follows:
 
-    nextflow run https://git.ecdf.ed.ac.uk/igmmbioinformatics/ega-submission-via-portal --reads '*_R{1,2}.fastq.gz' -profile conda
+    nextflow run ameynert/ega-submission-via-portal --samples samples.csv --reads '*_R{1,2}.fastq.gz' --ega_cryptor /path/to/ega_cryptor.jar -profile conda
 
     Mandatory arguments:
-      --reads [file]                Path to input data (must be surrounded with quotes)
+      --samples [file]              Path to samples CSV file
+      --reads [file]                Path to input data (must be surrounded with quotes, e.g. '*_R[1,2].fastq.gz]')
       --ega_cryptor [file]          Absolute path to EGA Cryptor JAR file (included in bin/ega-cryptor-2.0.0.jar)
-      --ega_user [str]              EGA upload box account (e.g. ega-box-1234)
-      --ega_password [str]          Password for EGA upload box account (TODO: securely pass this through to the upload process)
       -profile [str]                Configuration profile to use. Can use multiple (comma separated)
                                     Available: conda
 
     Other options:
-      --outdir [file]                 The output directory where the results will be saved
-      -name [str]                     Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic
+      --outdir [file]               The output directory where the results will be saved
+      --ega_user [str]              EGA upload box account (e.g. ega-box-1234)
+      --ega_password [str]          Password for EGA upload box account, must be specified if --ega-user is specified
+      -name [str]                   Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic
 
     """.stripIndent()
 }
@@ -55,48 +56,34 @@ ch_read_files = Channel
     .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!" }
 
 /*
- * STEP 1 - Encrypt
+ * STEP 1 - Encrypt the FASTQ files. Generate a line of CSV output for runs, if not uploading to EGA, move the
+ * encrypted files and md5 checksums to the output directory.
  */
 process encrypt {
     tag "$name"
 
+    if (params.ega_user.length() == 0) {
+      publishDir "${params.outdir}", pattern: '*.{gpg,md5}', mode: 'move'
+    }
+
     input:
-    set val(name), file(reads) from ch_read_files
+    set val(sample), file(reads) from ch_read_files
 
     output:
-    set val(name), file('*') into ch_encrypt_results
+    file '*.csv' into ch_runs_csv_output
+    set val(sample), file('*') into ch_upload_input
 
     script:
     """
     java -Xmx8g -jar ${params.ega_cryptor} -i ${reads[0]} -t 8 -o .
     java -Xmx8g -jar ${params.ega_cryptor} -i ${reads[1]} -t 8 -o .
+
+    echo "sample_${sample},${sample}_R1.fastq.gz,`cat ${sample}_R1.fastq.gz.gpg.md5`,`cat ${sample}_R1.fastq.gz.md5`,${sample}_R2.fastq.gz,`cat ${sample}_R2.fastq.gz.gpg.md5`,`cat ${sample}_R2.fastq.gz.md5`" > ${sample}.csv
     """
 }
 
 /*
- * Duplicate the encrypted reads channel
- */
-ch_encrypt_results.into { ch_runs_csv_input; ch_upload_input }
-
-/*
- * STEP 2 - Generate a line of CSV output for runs
- */
-process runs_csv {
-
-    input:
-    set sample, file(files) from ch_runs_csv_input
-
-    output:
-    file "*.csv" into ch_runs_csv_output
-
-    script:
-    """
-    echo "sample_${sample},${sample}_R1.fastq.gz,`cat ${files[1]}`,`cat ${files[2]}`,${sample}_R2.fastq.gz,`cat ${files[4]}`,`cat ${files[5]}`" > ${sample}.csv
-    """
-}
-
-/*
- * STEP 3 - Collect the CSV output for runs
+ * STEP 2 - Collect the CSV output for runs
  */
 process collect_runs_csv {
 
@@ -117,7 +104,7 @@ process collect_runs_csv {
 }
 
 /*
- * STEP 4 - Upload output via Aspera to EGA box
+ * STEP 3 - Upload output via Aspera to EGA box
  */
 process upload {
 
