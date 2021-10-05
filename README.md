@@ -18,7 +18,7 @@ rm EgaCryptor.zip
 
 ## Running
 
-The CSV file used to upload sample metadata to EGA must be provided. It links the internal EGA sample alias to its name. This pipeline assumes that the FASTQ files for upload are named in the format `sample_R1.fastq.gz`, `sample_R2.fastq.gz`, where `sample` is the entry in the `title` field of the sample CSV file.
+The CSV file used to upload sample metadata to EGA must be provided. It links the internal EGA sample alias to its name. This pipeline assumes that the FASTQ files for upload are named in the format `sample_R1.fastq.gz`, `sample_R2.fastq.gz`, where `sample` is the entry in the `subjectId` field of the sample CSV file.
 
 To run and upload automatically:
 
